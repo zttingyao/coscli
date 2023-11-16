@@ -1,0 +1,1869 @@
+Only in /Users/test/work/workspace_new/coscli/coscli/: .DS_Store
+Only in ./: .git
+diff -r ./.gitignore /Users/test/work/workspace_new/coscli/coscli/.gitignore
+10a11,13
+> 
+> go.sum
+> 
+Only in /Users/test/work/workspace_new/coscli/coscli/: .idea
+Only in ./: 1.txt
+diff -r ./cmd/cp.go /Users/test/work/workspace_new/coscli/coscli/cmd/cp.go
+118c118
+< 		util.MultiDownload(c, bucketName, cosPath, localPath, include, exclude, op)
+---
+> 		util.MultiDownload(c, bucketName, cosPath, cosPath, localPath, localPath, include, exclude, op)
+diff -r ./cmd/ls.go /Users/test/work/workspace_new/coscli/coscli/cmd/ls.go
+4,5c4,5
+<     "fmt"
+<     "os"
+---
+> 	"fmt"
+> 	"os"
+7c7
+<     "coscli/util"
+---
+> 	"coscli/util"
+9,12c9,12
+<     "github.com/olekukonko/tablewriter"
+<     logger "github.com/sirupsen/logrus"
+<     "github.com/spf13/cobra"
+<     "github.com/tencentyun/cos-go-sdk-v5"
+---
+> 	"github.com/olekukonko/tablewriter"
+> 	logger "github.com/sirupsen/logrus"
+> 	"github.com/spf13/cobra"
+> 	"github.com/tencentyun/cos-go-sdk-v5"
+16,18c16,18
+<     Use:   "ls",
+<     Short: "List buckets or objects",
+<     Long: `List buckets or objects
+---
+> 	Use:   "ls",
+> 	Short: "List buckets or objects",
+> 	Long: `List buckets or objects
+25,44c25,44
+<     Args: cobra.MaximumNArgs(1),
+<     Run: func(cmd *cobra.Command, args []string) {
+<         limit, _ := cmd.Flags().GetInt("limit")
+<         recursive, _ := cmd.Flags().GetBool("recursive")
+<         include, _ := cmd.Flags().GetString("include")
+<         exclude, _ := cmd.Flags().GetString("exclude")
+<         if limit < 0 || limit > 1000 {
+<             logger.Fatalln("Flag --limit should in range 0~1000")
+<             os.Exit(1)
+<         }
+< 
+<         // 无参数，则列出当前账号下的所有存储桶
+<         if len(args) == 0 {
+<             listBuckets(limit, include, exclude)
+<         } else if util.IsCosPath(args[0]) {
+<             listObjects(args[0], limit, recursive, include, exclude)
+<         } else {
+<             logger.Fatalln("cospath needs to contain cos://")
+<         }
+<     },
+---
+> 	Args: cobra.MaximumNArgs(1),
+> 	Run: func(cmd *cobra.Command, args []string) {
+> 		limit, _ := cmd.Flags().GetInt("limit")
+> 		recursive, _ := cmd.Flags().GetBool("recursive")
+> 		include, _ := cmd.Flags().GetString("include")
+> 		exclude, _ := cmd.Flags().GetString("exclude")
+> 		if limit < 0 || limit > 1000 {
+> 			logger.Fatalln("Flag --limit should in range 0~1000")
+> 			os.Exit(1)
+> 		}
+> 
+> 		// 无参数，则列出当前账号下的所有存储桶
+> 		if len(args) == 0 {
+> 			listBuckets(limit, include, exclude)
+> 		} else if util.IsCosPath(args[0]) {
+> 			listObjects(args[0], limit, recursive, include, exclude)
+> 		} else {
+> 			logger.Fatalln("cospath needs to contain cos://")
+> 		}
+> 	},
+48c48
+<     rootCmd.AddCommand(lsCmd)
+---
+> 	rootCmd.AddCommand(lsCmd)
+50,53c50,53
+<     lsCmd.Flags().Int("limit", 0, "Limit the number of objects listed(0~1000)")
+<     lsCmd.Flags().BoolP("recursive", "r", false, "List objects recursively")
+<     lsCmd.Flags().String("include", "", "List files that meet the specified criteria")
+<     lsCmd.Flags().String("exclude", "", "Exclude files that meet the specified criteria")
+---
+> 	lsCmd.Flags().Int("limit", 0, "Limit the number of objects listed(0~1000)")
+> 	lsCmd.Flags().BoolP("recursive", "r", false, "List objects recursively")
+> 	lsCmd.Flags().String("include", "", "List files that meet the specified criteria")
+> 	lsCmd.Flags().String("exclude", "", "Exclude files that meet the specified criteria")
+57c57
+<     c := util.NewClient(&config, &param, "")
+---
+> 	c := util.NewClient(&config, &param, "")
+59c59
+<     buckets := util.GetBucketsList(c, limit, include, exclude)
+---
+> 	buckets := util.GetBucketsList(c, limit, include, exclude)
+61,68c61,68
+<     table := tablewriter.NewWriter(os.Stdout)
+<     table.SetHeader([]string{"Bucket Name", "Region", "Create Date"})
+<     for _, b := range buckets {
+<         table.Append([]string{b.Name, b.Region, b.CreationDate})
+<     }
+<     table.SetFooter([]string{"", "Total Buckets: ", fmt.Sprintf("%d", len(buckets))})
+<     table.SetBorder(false)
+<     table.Render()
+---
+> 	table := tablewriter.NewWriter(os.Stdout)
+> 	table.SetHeader([]string{"Bucket Name", "Region", "Create Date"})
+> 	for _, b := range buckets {
+> 		table.Append([]string{b.Name, b.Region, b.CreationDate})
+> 	}
+> 	table.SetFooter([]string{"", "Total Buckets: ", fmt.Sprintf("%d", len(buckets))})
+> 	table.SetBorder(false)
+> 	table.Render()
+73,136c73,136
+<     bucketName, path := util.ParsePath(cosPath)
+<     c := util.NewClient(&config, &param, bucketName)
+<     var dirs []string
+<     var objects []cos.Object
+<     var marker = ""
+<     var isTruncated bool
+<     //var commonPrefixes []string
+<     var nextMarker string
+<     var total int64
+<     var output_num int64
+<     table := tablewriter.NewWriter(os.Stdout)
+<     table.SetHeader([]string{"Key", "Type", "Last Modified", "Size"})
+<     table.SetBorder(false)
+<     table.SetAlignment(tablewriter.ALIGN_RIGHT)
+<     if recursive {
+<         for {
+<             output_num = 0
+<             table.ClearRows()
+<             dirs, objects, isTruncated, nextMarker = util.GetObjectsListForLs(c, path, limit, include, exclude, marker)
+<             for _, d := range dirs {
+<                 // table.Append([]string{d, "DIR", "", ""})
+<                 getObjects(c, d, limit, include, exclude, marker)
+<             }
+<             for _, v := range objects {
+<                 table.Append([]string{v.Key, v.StorageClass, v.LastModified, util.FormatSize(v.Size)})
+<             }
+< 
+<             for _, t := range totalObject {
+<                 table.Append([]string{t.Key, t.StorageClass, t.LastModified, util.FormatSize(t.Size)})
+<             }
+<             // total = total + int64(len(dirs)) + int64(len(objects)) + int64(len(totalObject))
+<             total = total + int64(len(objects)) + int64(len(totalObject))
+<             if !isTruncated {
+<                 break
+<             }
+<             marker = nextMarker
+<         }
+<         table.SetFooter([]string{"", "", "Total Objects: ", fmt.Sprintf("%d", total)})
+<         table.Render()
+<     } else {
+<         for {
+<             table.ClearRows()
+<             dirs, objects, isTruncated, nextMarker = util.GetObjectsListForLs(c, path, limit, include, exclude, marker)
+<             for _, d := range dirs {
+<                 table.Append([]string{d, "DIR", "", ""})
+<             }
+<             for _, v := range objects {
+<                 table.Append([]string{v.Key, v.StorageClass, v.LastModified, util.FormatSize(v.Size)})
+<             }
+<             total = total + int64(len(dirs)) + int64(len(objects))
+<             output_num += int64(len(dirs)) + int64(len(objects))
+<             if output_num > 0 {
+<                 table.Render()
+<                 table.ClearRows()
+<             }
+<             if !isTruncated {
+<                 break
+<             }
+<             marker = nextMarker
+<         }
+< 
+<         table.SetFooter([]string{"", "", "Total Objects: ", fmt.Sprintf("%d", total)})
+<         table.Render()
+<     }
+---
+> 	bucketName, path := util.ParsePath(cosPath)
+> 	c := util.NewClient(&config, &param, bucketName)
+> 	var dirs []string
+> 	var objects []cos.Object
+> 	var marker = ""
+> 	var isTruncated bool
+> 	//var commonPrefixes []string
+> 	var nextMarker string
+> 	var total int64
+> 	var output_num int64
+> 	table := tablewriter.NewWriter(os.Stdout)
+> 	table.SetHeader([]string{"Key", "Type", "Last Modified", "Size"})
+> 	table.SetBorder(false)
+> 	table.SetAlignment(tablewriter.ALIGN_RIGHT)
+> 	if recursive {
+> 		for {
+> 			output_num = 0
+> 			table.ClearRows()
+> 			dirs, objects, isTruncated, nextMarker = util.GetObjectsListForLs(c, path, limit, include, exclude, marker)
+> 			for _, d := range dirs {
+> 				// table.Append([]string{d, "DIR", "", ""})
+> 				getObjects(c, d, limit, include, exclude, marker)
+> 			}
+> 			for _, v := range objects {
+> 				table.Append([]string{v.Key, v.StorageClass, v.LastModified, util.FormatSize(v.Size)})
+> 			}
+> 
+> 			for _, t := range totalObject {
+> 				table.Append([]string{t.Key, t.StorageClass, t.LastModified, util.FormatSize(t.Size)})
+> 			}
+> 			// total = total + int64(len(dirs)) + int64(len(objects)) + int64(len(totalObject))
+> 			total = total + int64(len(objects)) + int64(len(totalObject))
+> 			if !isTruncated {
+> 				break
+> 			}
+> 			marker = nextMarker
+> 		}
+> 		table.SetFooter([]string{"", "", "Total Objects: ", fmt.Sprintf("%d", total)})
+> 		table.Render()
+> 	} else {
+> 		for {
+> 			table.ClearRows()
+> 			dirs, objects, isTruncated, nextMarker = util.GetObjectsListForLs(c, path, limit, include, exclude, marker)
+> 			for _, d := range dirs {
+> 				table.Append([]string{d, "DIR", "", ""})
+> 			}
+> 			for _, v := range objects {
+> 				table.Append([]string{v.Key, v.StorageClass, v.LastModified, util.FormatSize(v.Size)})
+> 			}
+> 			total = total + int64(len(dirs)) + int64(len(objects))
+> 			output_num += int64(len(dirs)) + int64(len(objects))
+> 			if output_num > 0 {
+> 				table.Render()
+> 				table.ClearRows()
+> 			}
+> 			if !isTruncated {
+> 				break
+> 			}
+> 			marker = nextMarker
+> 		}
+> 
+> 		table.SetFooter([]string{"", "", "Total Objects: ", fmt.Sprintf("%d", total)})
+> 		table.Render()
+> 	}
+143,147c143,147
+<     dirs, objects, _, _ := util.GetObjectsListForLs(c, path, limit, include, exclude, marker)
+<     totalObject = append(totalObject, objects...)
+<     for _, dir := range dirs {
+<         getObjects(c, dir, limit, include, exclude, marker)
+<     }
+---
+> 	dirs, objects, _, _ := util.GetObjectsListForLs(c, path, limit, include, exclude, marker)
+> 	totalObject = append(totalObject, objects...)
+> 	for _, dir := range dirs {
+> 		getObjects(c, dir, limit, include, exclude, marker)
+> 	}
+Only in /Users/test/work/workspace_new/coscli/coscli/: coscli-linux
+Only in /Users/test/work/workspace_new/coscli/coscli/: coscli-linux-new
+Only in ./: coscli.log
+diff -r ./go.mod /Users/test/work/workspace_new/coscli/coscli/go.mod
+4a5,6
+> replace github.com/tencentyun/cos-go-sdk-v5 v0.7.42 => github.com/zhengting123456/cos-go-sdk-v5 v1.0.2
+> 
+15c17
+< 	github.com/tencentyun/cos-go-sdk-v5 v0.7.41
+---
+> 	github.com/tencentyun/cos-go-sdk-v5 v0.7.42
+diff -r ./go.sum /Users/test/work/workspace_new/coscli/coscli/go.sum
+334,337c334,335
+< github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.194/go.mod h1:7sCQWVkxcsR38nffDW057DRGk8mUjK1Ing/EFOK8s8Y=
+< github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/kms v1.0.194/go.mod h1:yrBKWhChnDqNz1xuXdSbWXG56XawEq0G5j1lg4VwBD4=
+< github.com/tencentyun/cos-go-sdk-v5 v0.7.41 h1:iU0Li/Np78H4SBna0ECQoF3mpgi6ImLXU+doGzPFXGc=
+< github.com/tencentyun/cos-go-sdk-v5 v0.7.41/go.mod h1:4dCEtLHGh8QPxHEkgq+nFaky7yZxQuYwgSJM87icDaw=
+---
+> github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.563/go.mod h1:7sCQWVkxcsR38nffDW057DRGk8mUjK1Ing/EFOK8s8Y=
+> github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/kms v1.0.563/go.mod h1:uom4Nvi9W+Qkom0exYiJ9VWJjXwyxtPYTkKkaLMlfE0=
+344a343,344
+> github.com/zhengting123456/cos-go-sdk-v5 v1.0.2 h1:5c+fNbbRnT5UHqItfXjaixqd0RCfBlyj+DGL/Fcy6Fw=
+> github.com/zhengting123456/cos-go-sdk-v5 v1.0.2/go.mod h1:LUFnaqRmGk6pEHOaRmdn2dCZR2j0cSsM5xowWFPTPao=
+diff -r ./util/download.go /Users/test/work/workspace_new/coscli/coscli/util/download.go
+125c125
+< func MultiDownload(c *cos.Client, bucketName, cosDir, localDir, include, exclude string, op *DownloadOptions) {
+---
+> func MultiDownload(c *cos.Client, bucketName, cosDir, cosDirTmp, localDir, localDirTmp, include, exclude string, op *DownloadOptions) {
+128a129,131
+> 	if localDirTmp != "" && (localDirTmp[len(localDirTmp)-1] != '/' && localDirTmp[len(localDirTmp)-1] != '\\') {
+> 		localDir += "/"
+> 	}
+135,136c138,142
+< 	objects, commonPrefixes := GetObjectsListRecursive(c, cosDir, 0, include, exclude)
+< 	listObjects(c, bucketName, objects, cosDir, localDir, op)
+---
+> 	if cosDirTmp != "" && cosDirTmp[len(cosDirTmp)-1] != '/' {
+> 		cosDirTmp += "/"
+> 	}
+> 	objects, commonPrefixes := GetObjectsListRecursive(c, cosDirTmp, 0, include, exclude)
+> 	listObjects(c, bucketName, objects, cosDirTmp, localDirTmp, op)
+140,141c146,149
+< 			localDirTemp := localDir + commonPrefixes[i]
+< 			MultiDownload(c, bucketName, commonPrefixes[i], localDirTemp, include, exclude, op)
+---
+> 			//localDirTemp := localDir + commonPrefixes[i]
+> 			tmpDir := strings.Split(commonPrefixes[i], cosDir)
+> 			localDirTemp := localDir + tmpDir[1]
+> 			MultiDownload(c, bucketName, cosDir, commonPrefixes[i], localDir, localDirTemp, include, exclude, op)
+144a153
+> 
+154c163
+< 		localPath := localDir + objName
+---
+> 		localPath := localDir + "/" + objName
+diff -r ./util/list.go /Users/test/work/workspace_new/coscli/coscli/util/list.go
+4,9c4,9
+< 	"context"
+< 	"fmt"
+< 	"io/fs"
+< 	"io/ioutil"
+< 	"os"
+< 	"regexp"
+---
+>     "context"
+>     "fmt"
+>     "io/fs"
+>     "io/ioutil"
+>     "os"
+>     "regexp"
+11,12c11,12
+< 	logger "github.com/sirupsen/logrus"
+< 	"github.com/tencentyun/cos-go-sdk-v5"
+---
+>     logger "github.com/sirupsen/logrus"
+>     "github.com/tencentyun/cos-go-sdk-v5"
+16,26c16,26
+< 	res := make([]cos.Bucket, 0)
+< 	for _, b := range buckets {
+< 		match, _ := regexp.Match(pattern, []byte(b.Name))
+< 		if !include {
+< 			match = !match
+< 		}
+< 		if match {
+< 			res = append(res, b)
+< 		}
+< 	}
+< 	return res
+---
+>     res := make([]cos.Bucket, 0)
+>     for _, b := range buckets {
+>         match, _ := regexp.Match(pattern, []byte(b.Name))
+>         if !include {
+>             match = !match
+>         }
+>         if match {
+>             res = append(res, b)
+>         }
+>     }
+>     return res
+30,40c30,40
+< 	res := make([]cos.Object, 0)
+< 	for _, o := range objects {
+< 		match, _ := regexp.Match(pattern, []byte(o.Key))
+< 		if !include {
+< 			match = !match
+< 		}
+< 		if match {
+< 			res = append(res, o)
+< 		}
+< 	}
+< 	return res
+---
+>     res := make([]cos.Object, 0)
+>     for _, o := range objects {
+>         match, _ := regexp.Match(pattern, []byte(o.Key))
+>         if !include {
+>             match = !match
+>         }
+>         if match {
+>             res = append(res, o)
+>         }
+>     }
+>     return res
+72,82c72,82
+< 	res := make([]UploadInfo, 0)
+< 	for _, u := range uploads {
+< 		match, _ := regexp.Match(pattern, []byte(u.Key))
+< 		if !include {
+< 			match = !match
+< 		}
+< 		if match {
+< 			res = append(res, u)
+< 		}
+< 	}
+< 	return res
+---
+>     res := make([]UploadInfo, 0)
+>     for _, u := range uploads {
+>         match, _ := regexp.Match(pattern, []byte(u.Key))
+>         if !include {
+>             match = !match
+>         }
+>         if match {
+>             res = append(res, u)
+>         }
+>     }
+>     return res
+86,97c86,97
+< 	res := make([]string, 0)
+< 	re := regexp.MustCompile(pattern)
+< 	for _, s := range strs {
+< 		match := re.MatchString(s)
+< 		if !include {
+< 			match = !match
+< 		}
+< 		if match {
+< 			res = append(res, s)
+< 		}
+< 	}
+< 	return res
+---
+>     res := make([]string, 0)
+>     re := regexp.MustCompile(pattern)
+>     for _, s := range strs {
+>         match := re.MatchString(s)
+>         if !include {
+>             match = !match
+>         }
+>         if match {
+>             res = append(res, s)
+>         }
+>     }
+>     return res
+101,125c101,125
+< 	res, _, err := c.Service.Get(context.Background())
+< 	if err != nil {
+< 		logger.Fatalln(err)
+< 		os.Exit(1)
+< 	}
+< 
+< 	buckets = res.Buckets
+< 	if len(include) > 0 {
+< 		buckets = MatchBucketPattern(buckets, include, true)
+< 	}
+< 	if len(exclude) > 0 {
+< 		buckets = MatchBucketPattern(buckets, exclude, false)
+< 	}
+< 
+< 	if limit > 0 {
+< 		var l int
+< 		if limit > len(buckets) {
+< 			l = len(buckets)
+< 		} else {
+< 			l = limit
+< 		}
+< 		return buckets[:l]
+< 	} else {
+< 		return buckets
+< 	}
+---
+>     res, _, err := c.Service.Get(context.Background())
+>     if err != nil {
+>         logger.Fatalln(err)
+>         os.Exit(1)
+>     }
+> 
+>     buckets = res.Buckets
+>     if len(include) > 0 {
+>         buckets = MatchBucketPattern(buckets, include, true)
+>     }
+>     if len(exclude) > 0 {
+>         buckets = MatchBucketPattern(buckets, exclude, false)
+>     }
+> 
+>     if limit > 0 {
+>         var l int
+>         if limit > len(buckets) {
+>             l = len(buckets)
+>         } else {
+>             l = limit
+>         }
+>         return buckets[:l]
+>     } else {
+>         return buckets
+>     }
+129,167c129,167
+< 	opt := &cos.BucketGetOptions{
+< 		Prefix:       prefix,
+< 		Delimiter:    "/",
+< 		EncodingType: "",
+< 		Marker:       "",
+< 		MaxKeys:      limit,
+< 	}
+< 
+< 	isTruncated := true
+< 	marker := ""
+< 	for isTruncated {
+< 		opt.Marker = marker
+< 
+< 		res, _, err := c.Bucket.Get(context.Background(), opt)
+< 		if err != nil {
+< 			logger.Infoln(err.Error())
+< 			logger.Fatalln(err)
+< 			os.Exit(1)
+< 		}
+< 
+< 		dirs = append(dirs, res.CommonPrefixes...)
+< 		objects = append(objects, res.Contents...)
+< 
+< 		if limit > 0 {
+< 			isTruncated = false
+< 		} else {
+< 			isTruncated = res.IsTruncated
+< 			marker = res.NextMarker
+< 		}
+< 	}
+< 
+< 	if len(include) > 0 {
+< 		objects = MatchCosPattern(objects, include, true)
+< 		dirs = MatchPattern(dirs, include, true)
+< 	}
+< 	if len(exclude) > 0 {
+< 		objects = MatchCosPattern(objects, exclude, false)
+< 		dirs = MatchPattern(dirs, exclude, false)
+< 	}
+---
+>     opt := &cos.BucketGetOptions{
+>         Prefix:       prefix,
+>         Delimiter:    "/",
+>         EncodingType: "",
+>         Marker:       "",
+>         MaxKeys:      limit,
+>     }
+> 
+>     isTruncated := true
+>     marker := ""
+>     for isTruncated {
+>         opt.Marker = marker
+> 
+>         res, _, err := c.Bucket.Get(context.Background(), opt)
+>         if err != nil {
+>             logger.Infoln(err.Error())
+>             logger.Fatalln(err)
+>             os.Exit(1)
+>         }
+> 
+>         dirs = append(dirs, res.CommonPrefixes...)
+>         objects = append(objects, res.Contents...)
+> 
+>         if limit > 0 {
+>             isTruncated = false
+>         } else {
+>             isTruncated = res.IsTruncated
+>             marker = res.NextMarker
+>         }
+>     }
+> 
+>     if len(include) > 0 {
+>         objects = MatchCosPattern(objects, include, true)
+>         dirs = MatchPattern(dirs, include, true)
+>     }
+>     if len(exclude) > 0 {
+>         objects = MatchCosPattern(objects, exclude, false)
+>         dirs = MatchPattern(dirs, exclude, false)
+>     }
+169c169
+< 	return dirs, objects
+---
+>     return dirs, objects
+173,181c173,207
+< 	marker string) (dirs []string,
+< 	objects []cos.Object, isTruncated bool, nextMaker string) {
+< 	opt := &cos.BucketGetOptions{
+< 		Prefix:       prefix,
+< 		Delimiter:    "/",
+< 		EncodingType: "",
+< 		Marker:       marker,
+< 		MaxKeys:      limit,
+< 	}
+---
+>     marker string) (dirs []string,
+>     objects []cos.Object, isTruncated bool, nextMaker string) {
+>     opt := &cos.BucketGetOptions{
+>         Prefix:       prefix,
+>         Delimiter:    "/",
+>         EncodingType: "",
+>         Marker:       marker,
+>         MaxKeys:      limit,
+>     }
+> 
+>     res, _, err := c.Bucket.Get(context.Background(), opt)
+>     if err != nil {
+>         logger.Infoln(err.Error())
+>         logger.Fatalln(err)
+>         os.Exit(1)
+>     }
+> 
+>     dirs = append(dirs, res.CommonPrefixes...)
+>     objects = append(objects, res.Contents...)
+> 
+>     if limit > 0 {
+>         isTruncated = false
+>     } else {
+>         isTruncated = res.IsTruncated
+>         nextMaker = res.NextMarker
+>     }
+> 
+>     if len(include) > 0 {
+>         objects = MatchCosPattern(objects, include, true)
+>         dirs = MatchPattern(dirs, include, true)
+>     }
+>     if len(exclude) > 0 {
+>         objects = MatchCosPattern(objects, exclude, false)
+>         dirs = MatchPattern(dirs, exclude, false)
+>     }
+183,209c209
+< 	res, _, err := c.Bucket.Get(context.Background(), opt)
+< 	if err != nil {
+< 		logger.Infoln(err.Error())
+< 		logger.Fatalln(err)
+< 		os.Exit(1)
+< 	}
+< 
+< 	dirs = append(dirs, res.CommonPrefixes...)
+< 	objects = append(objects, res.Contents...)
+< 
+< 	if limit > 0 {
+< 		isTruncated = false
+< 	} else {
+< 		isTruncated = res.IsTruncated
+< 		nextMaker = res.NextMarker
+< 	}
+< 
+< 	if len(include) > 0 {
+< 		objects = MatchCosPattern(objects, include, true)
+< 		dirs = MatchPattern(dirs, include, true)
+< 	}
+< 	if len(exclude) > 0 {
+< 		objects = MatchCosPattern(objects, exclude, false)
+< 		dirs = MatchPattern(dirs, exclude, false)
+< 	}
+< 
+< 	return dirs, objects, isTruncated, nextMaker
+---
+>     return dirs, objects, isTruncated, nextMaker
+213,287c213,292
+< 	commonPrefixes []string) {
+< 	opt := &cos.BucketGetOptions{
+< 		Prefix:       prefix,
+< 		Delimiter:    "",
+< 		EncodingType: "",
+< 		Marker:       "",
+< 		MaxKeys:      limit,
+< 	}
+< 
+< 	isTruncated := true
+< 	marker := ""
+< 	for isTruncated {
+< 		opt.Marker = marker
+< 
+< 		res, _, err := c.Bucket.Get(context.Background(), opt)
+< 		if err != nil {
+< 			logger.Fatalln(err)
+< 			os.Exit(1)
+< 		}
+< 
+< 		objects = append(objects, res.Contents...)
+< 		commonPrefixes = res.CommonPrefixes
+< 
+< 		if limit > 0 {
+< 			isTruncated = false
+< 		} else {
+< 			isTruncated = res.IsTruncated
+< 			marker = res.NextMarker
+< 		}
+< 	}
+< 
+< 	if len(include) > 0 {
+< 		objects = MatchCosPattern(objects, include, true)
+< 	}
+< 	if len(exclude) > 0 {
+< 		objects = MatchCosPattern(objects, exclude, false)
+< 	}
+< 
+< 	return objects, commonPrefixes
+< }
+< 
+< func GetObjectsListRecursiveForLs(c *cos.Client, prefix string, limit int, include string, exclude string,
+< 	marker string) (objects []cos.Object, isTruncated bool, nextMarker string, commonPrefixes []string) {
+< 	opt := &cos.BucketGetOptions{
+< 		Prefix:       prefix,
+< 		Delimiter:    "",
+< 		EncodingType: "",
+< 		Marker:       marker,
+< 		MaxKeys:      limit,
+< 	}
+< 
+< 	res, _, err := c.Bucket.Get(context.Background(), opt)
+< 	if err != nil {
+< 		logger.Fatalln(err)
+< 		os.Exit(1)
+< 	}
+< 
+< 	objects = append(objects, res.Contents...)
+< 	commonPrefixes = res.CommonPrefixes
+< 
+< 	if limit > 0 {
+< 		isTruncated = false
+< 	} else {
+< 		isTruncated = res.IsTruncated
+< 		nextMarker = res.NextMarker
+< 	}
+< 
+< 	if len(include) > 0 {
+< 		objects = MatchCosPattern(objects, include, true)
+< 	}
+< 	if len(exclude) > 0 {
+< 		objects = MatchCosPattern(objects, exclude, false)
+< 	}
+< 
+< 	return objects, isTruncated, nextMarker, commonPrefixes
+---
+>     commonPrefixes []string) {
+>     opt := &cos.BucketGetOptions{
+>         Prefix:       prefix,
+>         Delimiter:    "",
+>         EncodingType: "",
+>         Marker:       "",
+>         MaxKeys:      limit,
+>     }
+> 
+>     isTruncated := true
+>     marker := ""
+>     for isTruncated {
+>         opt.Marker = marker
+> 
+>         res, _, err := c.Bucket.Get(context.Background(), opt)
+>         if err != nil {
+>             logger.Fatalln(err)
+>             os.Exit(1)
+>         }
+> 
+>         objects = append(objects, res.Contents...)
+>         commonPrefixes = res.CommonPrefixes
+> 
+>         // 适配融合桶
+>         if len(commonPrefixes) > 0 {
+>             subDirectoryObjects := GetObjectsListRecursiveForLs(c, limit, include, exclude, marker, commonPrefixes)
+>             objects = append(objects, subDirectoryObjects...)
+>         }
+> 
+>         if limit > 0 {
+>             isTruncated = false
+>         } else {
+>             isTruncated = res.IsTruncated
+>             marker = res.NextMarker
+>         }
+>     }
+> 
+>     if len(include) > 0 {
+>         objects = MatchCosPattern(objects, include, true)
+>     }
+>     if len(exclude) > 0 {
+>         objects = MatchCosPattern(objects, exclude, false)
+>     }
+> 
+>     return objects, commonPrefixes
+> }
+> 
+> func GetObjectsListRecursiveForLs(c *cos.Client, limit int, include string, exclude string, marker string,
+>     commonPrefixes []string) (objects []cos.Object) {
+>     if len(commonPrefixes) == 0 {
+>         return nil
+>     }
+>     for _, commonPrefix := range commonPrefixes {
+>         opt := &cos.BucketGetOptions{
+>             Prefix:       commonPrefix,
+>             Delimiter:    "",
+>             EncodingType: "",
+>             Marker:       marker,
+>             MaxKeys:      limit,
+>         }
+>         res, _, err := c.Bucket.Get(context.Background(), opt)
+>         if err != nil {
+>             logger.Errorf("recursive directory failed, directory is %s", commonPrefix)
+>             continue
+>         }
+>         objects = append(objects, res.Contents...)
+> 
+>         if len(res.CommonPrefixes) > 0 {
+>             // 子目录
+>             subDir := GetObjectsListRecursiveForLs(c, limit, include, exclude, marker, res.CommonPrefixes)
+>             objects = append(objects, subDir...)
+>         }
+>         if len(include) > 0 {
+>             objects = MatchCosPattern(objects, include, true)
+>         }
+>         if len(exclude) > 0 {
+>             objects = MatchCosPattern(objects, exclude, false)
+>         }
+>     }
+>     return objects
+332,355c337,360
+< 	fileInfos, err := ioutil.ReadDir(localPath)
+< 	if err != nil {
+< 		logger.Fatalln(err)
+< 		os.Exit(1)
+< 	}
+< 
+< 	for _, f := range fileInfos {
+< 		fileName := localPath + "/" + f.Name()
+< 		fileName = fileName[len(localPath)+1:]
+< 		if f.IsDir() {
+< 			dirs = append(dirs, fileName)
+< 		} else {
+< 			files = append(files, fileName)
+< 		}
+< 	}
+< 
+< 	if len(include) > 0 {
+< 		files = MatchPattern(files, include, true)
+< 		dirs = MatchPattern(dirs, include, true)
+< 	}
+< 	if len(exclude) > 0 {
+< 		files = MatchPattern(files, exclude, true)
+< 		dirs = MatchPattern(dirs, exclude, false)
+< 	}
+---
+>     fileInfos, err := ioutil.ReadDir(localPath)
+>     if err != nil {
+>         logger.Fatalln(err)
+>         os.Exit(1)
+>     }
+> 
+>     for _, f := range fileInfos {
+>         fileName := localPath + "/" + f.Name()
+>         fileName = fileName[len(localPath)+1:]
+>         if f.IsDir() {
+>             dirs = append(dirs, fileName)
+>         } else {
+>             files = append(files, fileName)
+>         }
+>     }
+> 
+>     if len(include) > 0 {
+>         files = MatchPattern(files, include, true)
+>         dirs = MatchPattern(dirs, include, true)
+>     }
+>     if len(exclude) > 0 {
+>         files = MatchPattern(files, exclude, true)
+>         dirs = MatchPattern(dirs, exclude, false)
+>     }
+357c362
+< 	return dirs, files
+---
+>     return dirs, files
+361,398c366,403
+< 	// bfs遍历文件夹
+< 	var dirs []string
+< 	dirs = append(dirs, localPath)
+< 	for len(dirs) > 0 {
+< 		dirName := dirs[0]
+< 		dirs = dirs[1:]
+< 
+< 		fileInfos, err := ioutil.ReadDir(dirName)
+< 		if err != nil {
+< 			logger.Fatalln(err)
+< 			os.Exit(1)
+< 		}
+< 
+< 		for _, f := range fileInfos {
+< 			fileName := dirName + "/" + f.Name()
+< 			if f.Mode().IsRegular() { // 普通文件，直接添加
+< 				fileName = fileName[len(localPath)+1:]
+< 				files = append(files, fileName)
+< 			} else if f.IsDir() { // 普通目录，添加到继续迭代
+< 				dirs = append(dirs, fileName)
+< 			} else if f.Mode()&os.ModeSymlink == fs.ModeSymlink { // 软链接
+< 				logger.Infoln(fmt.Sprintf("List %s file is Symlink, will be excluded, "+
+< 					"please list or upload it from realpath",
+< 					fileName))
+< 				continue
+< 			} else {
+< 				logger.Infoln(fmt.Sprintf("List %s file is not regular file, will be excluded", fileName))
+< 				continue
+< 			}
+< 		}
+< 	}
+< 
+< 	if len(include) > 0 {
+< 		files = MatchPattern(files, include, true)
+< 	}
+< 	if len(exclude) > 0 {
+< 		files = MatchPattern(files, exclude, false)
+< 	}
+---
+>     // bfs遍历文件夹
+>     var dirs []string
+>     dirs = append(dirs, localPath)
+>     for len(dirs) > 0 {
+>         dirName := dirs[0]
+>         dirs = dirs[1:]
+> 
+>         fileInfos, err := ioutil.ReadDir(dirName)
+>         if err != nil {
+>             logger.Fatalln(err)
+>             os.Exit(1)
+>         }
+> 
+>         for _, f := range fileInfos {
+>             fileName := dirName + "/" + f.Name()
+>             if f.Mode().IsRegular() { // 普通文件，直接添加
+>                 fileName = fileName[len(localPath)+1:]
+>                 files = append(files, fileName)
+>             } else if f.IsDir() { // 普通目录，添加到继续迭代
+>                 dirs = append(dirs, fileName)
+>             } else if f.Mode()&os.ModeSymlink == fs.ModeSymlink { // 软链接
+>                 logger.Infoln(fmt.Sprintf("List %s file is Symlink, will be excluded, "+
+>                     "please list or upload it from realpath",
+>                     fileName))
+>                 continue
+>             } else {
+>                 logger.Infoln(fmt.Sprintf("List %s file is not regular file, will be excluded", fileName))
+>                 continue
+>             }
+>         }
+>     }
+> 
+>     if len(include) > 0 {
+>         files = MatchPattern(files, include, true)
+>     }
+>     if len(exclude) > 0 {
+>         files = MatchPattern(files, exclude, false)
+>     }
+400c405
+< 	return files
+---
+>     return files
+406,435c411,456
+< 	opt := &cos.ListMultipartUploadsOptions{
+< 		Delimiter:      "/",
+< 		EncodingType:   "",
+< 		Prefix:         prefix,
+< 		MaxUploads:     limit,
+< 		KeyMarker:      "",
+< 		UploadIDMarker: "",
+< 	}
+< 
+< 	isTruncated := true
+< 	keyMarker := ""
+< 	uploadIDMarker := ""
+< 	for isTruncated {
+< 		opt.KeyMarker = keyMarker
+< 		opt.UploadIDMarker = uploadIDMarker
+< 
+< 		res, _, err := c.Bucket.ListMultipartUploads(context.Background(), opt)
+< 		if err != nil {
+< 			logger.Fatalln(err)
+< 			os.Exit(1)
+< 		}
+< 
+< 		dirs = append(dirs, res.CommonPrefixes...)
+< 		for _, u := range res.Uploads {
+< 			uploads = append(uploads, UploadInfo{
+< 				Key:       u.Key,
+< 				UploadID:  u.UploadID,
+< 				Initiated: u.Initiated,
+< 			})
+< 		}
+---
+>     opt := &cos.ListMultipartUploadsOptions{
+>         Delimiter:      "/",
+>         EncodingType:   "",
+>         Prefix:         prefix,
+>         MaxUploads:     limit,
+>         KeyMarker:      "",
+>         UploadIDMarker: "",
+>     }
+> 
+>     isTruncated := true
+>     keyMarker := ""
+>     uploadIDMarker := ""
+>     for isTruncated {
+>         opt.KeyMarker = keyMarker
+>         opt.UploadIDMarker = uploadIDMarker
+> 
+>         res, _, err := c.Bucket.ListMultipartUploads(context.Background(), opt)
+>         if err != nil {
+>             logger.Fatalln(err)
+>             os.Exit(1)
+>         }
+> 
+>         dirs = append(dirs, res.CommonPrefixes...)
+>         for _, u := range res.Uploads {
+>             uploads = append(uploads, UploadInfo{
+>                 Key:       u.Key,
+>                 UploadID:  u.UploadID,
+>                 Initiated: u.Initiated,
+>             })
+>         }
+> 
+>         if limit > 0 {
+>             isTruncated = false
+>         } else {
+>             isTruncated = res.IsTruncated
+>             keyMarker = res.NextKeyMarker
+>             uploadIDMarker = res.NextUploadIDMarker
+>         }
+>     }
+> 
+>     if len(include) > 0 {
+>         uploads = MatchUploadPattern(uploads, include, true)
+>     }
+>     if len(exclude) > 0 {
+>         uploads = MatchUploadPattern(uploads, exclude, false)
+>     }
+437,453c458
+< 		if limit > 0 {
+< 			isTruncated = false
+< 		} else {
+< 			isTruncated = res.IsTruncated
+< 			keyMarker = res.NextKeyMarker
+< 			uploadIDMarker = res.NextUploadIDMarker
+< 		}
+< 	}
+< 
+< 	if len(include) > 0 {
+< 		uploads = MatchUploadPattern(uploads, include, true)
+< 	}
+< 	if len(exclude) > 0 {
+< 		uploads = MatchUploadPattern(uploads, exclude, false)
+< 	}
+< 
+< 	return dirs, uploads
+---
+>     return dirs, uploads
+457,501c462,506
+< 	opt := &cos.ListMultipartUploadsOptions{
+< 		Delimiter:      "",
+< 		EncodingType:   "",
+< 		Prefix:         prefix,
+< 		MaxUploads:     limit,
+< 		KeyMarker:      "",
+< 		UploadIDMarker: "",
+< 	}
+< 
+< 	isTruncated := true
+< 	keyMarker := ""
+< 	uploadIDMarker := ""
+< 	for isTruncated {
+< 		opt.KeyMarker = keyMarker
+< 		opt.UploadIDMarker = uploadIDMarker
+< 
+< 		res, _, err := c.Bucket.ListMultipartUploads(context.Background(), opt)
+< 		if err != nil {
+< 			logger.Fatalln(err)
+< 			os.Exit(1)
+< 		}
+< 
+< 		for _, u := range res.Uploads {
+< 			uploads = append(uploads, UploadInfo{
+< 				Key:       u.Key,
+< 				UploadID:  u.UploadID,
+< 				Initiated: u.Initiated,
+< 			})
+< 		}
+< 
+< 		if limit > 0 {
+< 			isTruncated = false
+< 		} else {
+< 			isTruncated = res.IsTruncated
+< 			keyMarker = res.NextKeyMarker
+< 			uploadIDMarker = res.NextUploadIDMarker
+< 		}
+< 	}
+< 
+< 	if len(include) > 0 {
+< 		uploads = MatchUploadPattern(uploads, include, true)
+< 	}
+< 	if len(exclude) > 0 {
+< 		uploads = MatchUploadPattern(uploads, exclude, false)
+< 	}
+---
+>     opt := &cos.ListMultipartUploadsOptions{
+>         Delimiter:      "",
+>         EncodingType:   "",
+>         Prefix:         prefix,
+>         MaxUploads:     limit,
+>         KeyMarker:      "",
+>         UploadIDMarker: "",
+>     }
+> 
+>     isTruncated := true
+>     keyMarker := ""
+>     uploadIDMarker := ""
+>     for isTruncated {
+>         opt.KeyMarker = keyMarker
+>         opt.UploadIDMarker = uploadIDMarker
+> 
+>         res, _, err := c.Bucket.ListMultipartUploads(context.Background(), opt)
+>         if err != nil {
+>             logger.Fatalln(err)
+>             os.Exit(1)
+>         }
+> 
+>         for _, u := range res.Uploads {
+>             uploads = append(uploads, UploadInfo{
+>                 Key:       u.Key,
+>                 UploadID:  u.UploadID,
+>                 Initiated: u.Initiated,
+>             })
+>         }
+> 
+>         if limit > 0 {
+>             isTruncated = false
+>         } else {
+>             isTruncated = res.IsTruncated
+>             keyMarker = res.NextKeyMarker
+>             uploadIDMarker = res.NextUploadIDMarker
+>         }
+>     }
+> 
+>     if len(include) > 0 {
+>         uploads = MatchUploadPattern(uploads, include, true)
+>     }
+>     if len(exclude) > 0 {
+>         uploads = MatchUploadPattern(uploads, exclude, false)
+>     }
+503c508
+< 	return uploads
+---
+>     return uploads
+diff -r ./util/list_iterator.go /Users/test/work/workspace_new/coscli/coscli/util/list_iterator.go
+4,5c4,5
+< 	"context"
+< 	"os"
+---
+>     "context"
+>     "os"
+7,8c7,8
+< 	logger "github.com/sirupsen/logrus"
+< 	"github.com/tencentyun/cos-go-sdk-v5"
+---
+>     logger "github.com/sirupsen/logrus"
+>     "github.com/tencentyun/cos-go-sdk-v5"
+12,40c12,39
+< 	isTruncated bool, nextMarker string, commonPrefixes []string) {
+< 	opt := &cos.BucketGetOptions{
+< 		Prefix:       prefix,
+< 		Delimiter:    "",
+< 		EncodingType: "",
+< 		Marker:       marker,
+< 		MaxKeys:      0,
+< 	}
+< 
+< 	res, _, err := c.Bucket.Get(context.Background(), opt)
+< 	if err != nil {
+< 		logger.Fatalln(err)
+< 		os.Exit(1)
+< 	}
+< 
+< 	objects = append(objects, res.Contents...)
+< 	commonPrefixes = res.CommonPrefixes
+< 
+< 	isTruncated = res.IsTruncated
+< 	nextMarker = res.NextMarker
+< 
+< 	if len(include) > 0 {
+< 		objects = MatchCosPattern(objects, include, true)
+< 	}
+< 	if len(exclude) > 0 {
+< 		objects = MatchCosPattern(objects, exclude, false)
+< 	}
+< 
+< 	return objects, isTruncated, nextMarker, commonPrefixes
+---
+>     isTruncated bool, nextMarker string, commonPrefixes []string) {
+>     opt := &cos.BucketGetOptions{
+>         Prefix:       prefix,
+>         Delimiter:    "",
+>         EncodingType: "",
+>         Marker:       marker,
+>         MaxKeys:      0,
+>     }
+> 
+>     res, _, err := c.Bucket.Get(context.Background(), opt)
+>     if err != nil {
+>         logger.Fatalln(err)
+>         os.Exit(1)
+>     }
+> 
+>     objects = append(objects, res.Contents...)
+>     commonPrefixes = res.CommonPrefixes
+> 
+>     isTruncated = res.IsTruncated
+>     nextMarker = res.NextMarker
+> 
+>     if len(include) > 0 {
+>         objects = MatchCosPattern(objects, include, true)
+>     }
+>     if len(exclude) > 0 {
+>         objects = MatchCosPattern(objects, exclude, false)
+>     }
+>     return objects, isTruncated, nextMarker, commonPrefixes
+diff -r ./util/synchronize.go /Users/test/work/workspace_new/coscli/coscli/util/synchronize.go
+4,12c4,12
+< 	"context"
+< 	"os"
+< 	"strconv"
+< 	"strings"
+< 	"time"
+< 
+< 	logger "github.com/sirupsen/logrus"
+< 	"github.com/syndtr/goleveldb/leveldb"
+< 	"github.com/tencentyun/cos-go-sdk-v5"
+---
+>     "context"
+>     "os"
+>     "strconv"
+>     "strings"
+>     "time"
+> 
+>     logger "github.com/sirupsen/logrus"
+>     "github.com/syndtr/goleveldb/leveldb"
+>     "github.com/tencentyun/cos-go-sdk-v5"
+16,27c16,27
+< 	localPath, cosPath = UploadPathFixed(localPath, cosPath)
+< 	skip, err := skipUpload(c, op.SnapshotPath, op.SnapshotDb, localPath, cosPath)
+< 	if err != nil {
+< 		logger.Errorf("Sync LocalPath:%s, err:%s", localPath, err.Error())
+< 		return
+< 	}
+< 
+< 	if skip {
+< 		logger.Infof("Sync upload file localPath skip, %s", localPath)
+< 	} else {
+< 		SingleUpload(c, localPath, bucketName, cosPath, op)
+< 	}
+---
+>     localPath, cosPath = UploadPathFixed(localPath, cosPath)
+>     skip, err := skipUpload(c, op.SnapshotPath, op.SnapshotDb, localPath, cosPath)
+>     if err != nil {
+>         logger.Errorf("Sync LocalPath:%s, err:%s", localPath, err.Error())
+>         return
+>     }
+> 
+>     if skip {
+>         logger.Infof("Sync upload file localPath skip, %s", localPath)
+>     } else {
+>         SingleUpload(c, localPath, bucketName, cosPath, op)
+>     }
+31,80c31,80
+< 	cosPath string) (skip bool, err error) {
+< 	// 直接和本地的snapshot作对比
+< 	if snapshotPath != "" {
+< 		var localPathInfo os.FileInfo
+< 		localPathInfo, err = os.Stat(localPath)
+< 		if err != nil {
+< 			return
+< 		}
+< 		var info []byte
+< 		info, err = snapshotDb.Get([]byte(localPath), nil)
+< 		if err == nil {
+< 			t, _ := strconv.ParseInt(string(info), 10, 64)
+< 			if t == localPathInfo.ModTime().Unix() {
+< 				return true, nil
+< 			} else {
+< 				return false, nil
+< 			}
+< 		} else {
+< 			return false, nil
+< 		}
+< 	}
+< 
+< 	headOpt := &cos.ObjectHeadOptions{
+< 		IfModifiedSince:       "",
+< 		XCosSSECustomerAglo:   "",
+< 		XCosSSECustomerKey:    "",
+< 		XCosSSECustomerKeyMD5: "",
+< 		XOptionHeader:         nil,
+< 	}
+< 	resp, err := c.Object.Head(context.Background(), cosPath, headOpt)
+< 	if err != nil {
+< 		if resp != nil && resp.StatusCode == 404 {
+< 			// 文件不在cos上，上传
+< 			return false, nil
+< 		} else {
+< 			return false, err
+< 		}
+< 	} else {
+< 		if resp.StatusCode != 404 {
+< 			cosCrc := resp.Header.Get("x-cos-hash-crc64ecma")
+< 			localCrc, _ := CalculateHash(localPath, "crc64")
+< 			if cosCrc == localCrc {
+< 				return true, nil
+< 			} else {
+< 				return false, nil
+< 			}
+< 		} else {
+< 			return false, nil
+< 		}
+< 	}
+---
+>     cosPath string) (skip bool, err error) {
+>     // 直接和本地的snapshot作对比
+>     if snapshotPath != "" {
+>         var localPathInfo os.FileInfo
+>         localPathInfo, err = os.Stat(localPath)
+>         if err != nil {
+>             return
+>         }
+>         var info []byte
+>         info, err = snapshotDb.Get([]byte(localPath), nil)
+>         if err == nil {
+>             t, _ := strconv.ParseInt(string(info), 10, 64)
+>             if t == localPathInfo.ModTime().Unix() {
+>                 return true, nil
+>             } else {
+>                 return false, nil
+>             }
+>         } else {
+>             return false, nil
+>         }
+>     }
+> 
+>     headOpt := &cos.ObjectHeadOptions{
+>         IfModifiedSince:       "",
+>         XCosSSECustomerAglo:   "",
+>         XCosSSECustomerKey:    "",
+>         XCosSSECustomerKeyMD5: "",
+>         XOptionHeader:         nil,
+>     }
+>     resp, err := c.Object.Head(context.Background(), cosPath, headOpt)
+>     if err != nil {
+>         if resp != nil && resp.StatusCode == 404 {
+>             // 文件不在cos上，上传
+>             return false, nil
+>         } else {
+>             return false, err
+>         }
+>     } else {
+>         if resp.StatusCode != 404 {
+>             cosCrc := resp.Header.Get("x-cos-hash-crc64ecma")
+>             localCrc, _ := CalculateHash(localPath, "crc64")
+>             if cosCrc == localCrc {
+>                 return true, nil
+>             } else {
+>                 return false, nil
+>             }
+>         } else {
+>             return false, nil
+>         }
+>     }
+84,97c84,97
+< 	if cosDir != "" && cosDir[len(cosDir)-1] != '/' {
+< 		cosDir += "/"
+< 	}
+< 	if localDir != "" && (localDir[len(localDir)-1] != '/' && localDir[len(localDir)-1] != '\\') {
+< 		tmp := strings.Split(localDir, "/")
+< 		cosDir = cosDir + tmp[len(tmp)-1] + "/"
+< 		localDir += "/"
+< 	}
+< 
+< 	files := GetLocalFilesListRecursive(localDir, include, exclude)
+< 
+< 	for _, f := range files {
+< 		localPath := localDir + f
+< 		cosPath := cosDir + f
+---
+>     if cosDir != "" && cosDir[len(cosDir)-1] != '/' {
+>         cosDir += "/"
+>     }
+>     if localDir != "" && (localDir[len(localDir)-1] != '/' && localDir[len(localDir)-1] != '\\') {
+>         tmp := strings.Split(localDir, "/")
+>         cosDir = cosDir + tmp[len(tmp)-1] + "/"
+>         localDir += "/"
+>     }
+> 
+>     files := GetLocalFilesListRecursive(localDir, include, exclude)
+> 
+>     for _, f := range files {
+>         localPath := localDir + f
+>         cosPath := cosDir + f
+99,100c99,100
+< 		SyncSingleUpload(c, localPath, bucketName, cosPath, op)
+< 	}
+---
+>         SyncSingleUpload(c, localPath, bucketName, cosPath, op)
+>     }
+104,132c104,132
+< 	cosLastModified string) error {
+< 	localPath, cosPath, err := DownloadPathFixed(localPath, cosPath)
+< 	if err != nil {
+< 		return err
+< 	}
+< 	_, err = os.Stat(localPath)
+< 	if err != nil {
+< 		if os.IsNotExist(err) {
+< 			// 文件不在本地，下载
+< 			err = SingleDownload(c, bucketName, cosPath, localPath, op)
+< 		} else {
+< 			logger.Fatalln(err)
+< 			return err
+< 		}
+< 	} else {
+< 		var skip bool
+< 		skip, err = skipDownload(c, op.SnapshotPath, op.SnapshotDb, localPath, cosPath, cosLastModified)
+< 		if err != nil {
+< 			logger.Errorf("Sync cosPath, err:%s", err.Error())
+< 			return err
+< 		}
+< 
+< 		if skip {
+< 			logger.Infof("Sync skip download, localPath:%s, cosPath:%s", localPath, cosPath)
+< 			return nil
+< 		}
+< 		err = SingleDownload(c, bucketName, cosPath, localPath, op)
+< 	}
+< 	return err
+---
+>     cosLastModified string) error {
+>     localPath, cosPath, err := DownloadPathFixed(localPath, cosPath)
+>     if err != nil {
+>         return err
+>     }
+>     _, err = os.Stat(localPath)
+>     if err != nil {
+>         if os.IsNotExist(err) {
+>             // 文件不在本地，下载
+>             err = SingleDownload(c, bucketName, cosPath, localPath, op)
+>         } else {
+>             logger.Fatalln(err)
+>             return err
+>         }
+>     } else {
+>         var skip bool
+>         skip, err = skipDownload(c, op.SnapshotPath, op.SnapshotDb, localPath, cosPath, cosLastModified)
+>         if err != nil {
+>             logger.Errorf("Sync cosPath, err:%s", err.Error())
+>             return err
+>         }
+> 
+>         if skip {
+>             logger.Infof("Sync skip download, localPath:%s, cosPath:%s", localPath, cosPath)
+>             return nil
+>         }
+>         err = SingleDownload(c, bucketName, cosPath, localPath, op)
+>     }
+>     return err
+136,173c136,173
+< 	cosPath string, cosLastModified string) (skip bool, err error) {
+< 	// 直接和本地的snapshot作对比
+< 	if snapshotPath != "" {
+< 		if cosLastModified == "" {
+< 			cosLastModified, err = getCosLastModified(c, cosPath)
+< 			if err != nil {
+< 				return
+< 			}
+< 		}
+< 		var cosLastModifiedTime time.Time
+< 		cosLastModifiedTime, err = time.Parse(time.RFC3339, cosLastModified)
+< 		if err != nil {
+< 			cosLastModifiedTime, err = time.Parse(time.RFC1123, cosLastModified)
+< 			if err != nil {
+< 				return
+< 			}
+< 		}
+< 		var info []byte
+< 		info, err = snapshotDb.Get([]byte(cosPath), nil)
+< 		if err == nil {
+< 			t, _ := strconv.ParseInt(string(info), 10, 64)
+< 			if t == cosLastModifiedTime.Unix() {
+< 				return true, nil
+< 			} else {
+< 				return false, nil
+< 			}
+< 		} else {
+< 			return false, nil
+< 		}
+< 	}
+< 
+< 	localCrc, _ := CalculateHash(localPath, "crc64")
+< 	cosCrc, _ := ShowHash(c, cosPath, "crc64")
+< 	if cosCrc == localCrc {
+< 		return true, nil
+< 	} else {
+< 		return false, nil
+< 	}
+---
+>     cosPath string, cosLastModified string) (skip bool, err error) {
+>     // 直接和本地的snapshot作对比
+>     if snapshotPath != "" {
+>         if cosLastModified == "" {
+>             cosLastModified, err = getCosLastModified(c, cosPath)
+>             if err != nil {
+>                 return
+>             }
+>         }
+>         var cosLastModifiedTime time.Time
+>         cosLastModifiedTime, err = time.Parse(time.RFC3339, cosLastModified)
+>         if err != nil {
+>             cosLastModifiedTime, err = time.Parse(time.RFC1123, cosLastModified)
+>             if err != nil {
+>                 return
+>             }
+>         }
+>         var info []byte
+>         info, err = snapshotDb.Get([]byte(cosPath), nil)
+>         if err == nil {
+>             t, _ := strconv.ParseInt(string(info), 10, 64)
+>             if t == cosLastModifiedTime.Unix() {
+>                 return true, nil
+>             } else {
+>                 return false, nil
+>             }
+>         } else {
+>             return false, nil
+>         }
+>     }
+> 
+>     localCrc, _ := CalculateHash(localPath, "crc64")
+>     cosCrc, _ := ShowHash(c, cosPath, "crc64")
+>     if cosCrc == localCrc {
+>         return true, nil
+>     } else {
+>         return false, nil
+>     }
+177,189c177,189
+< 	headOpt := &cos.ObjectHeadOptions{
+< 		IfModifiedSince:       "",
+< 		XCosSSECustomerAglo:   "",
+< 		XCosSSECustomerKey:    "",
+< 		XCosSSECustomerKeyMD5: "",
+< 		XOptionHeader:         nil,
+< 	}
+< 	resp, err := c.Object.Head(context.Background(), cosPath, headOpt)
+< 	if err != nil {
+< 		return "", err
+< 	} else {
+< 		return resp.Header.Get("Last-Modified"), nil
+< 	}
+---
+>     headOpt := &cos.ObjectHeadOptions{
+>         IfModifiedSince:       "",
+>         XCosSSECustomerAglo:   "",
+>         XCosSSECustomerKey:    "",
+>         XCosSSECustomerKeyMD5: "",
+>         XOptionHeader:         nil,
+>     }
+>     resp, err := c.Object.Head(context.Background(), cosPath, headOpt)
+>     if err != nil {
+>         return "", err
+>     } else {
+>         return resp.Header.Get("Last-Modified"), nil
+>     }
+193,209c193,216
+< 	if localDir != "" && (localDir[len(localDir)-1] != '/' && localDir[len(localDir)-1] != '\\') {
+< 		localDir += "/"
+< 	}
+< 	if cosDir != "" && cosDir[len(cosDir)-1] != '/' {
+< 		tmp := strings.Split(cosDir, "/")
+< 		localDir = localDir + tmp[len(tmp)-1] + "/"
+< 		cosDir += "/"
+< 	}
+< 	objects, _ := GetObjectsListRecursive(c, cosDir, 0, include, exclude)
+< 	if len(objects) == 0 {
+< 		logger.Warningf("cosDir: cos://%s is empty\n", cosDir)
+< 		return
+< 	}
+< 	for _, o := range objects {
+< 		objName := o.Key[len(cosDir):]
+< 		localPath := localDir + objName
+< 		SyncSingleDownload(c, bucketName, o.Key, localPath, op, o.LastModified)
+---
+>     if localDir != "" && (localDir[len(localDir)-1] != '/' && localDir[len(localDir)-1] != '\\') {
+>         localDir += "/"
+>     }
+>     if cosDir != "" && cosDir[len(cosDir)-1] != '/' {
+>         tmp := strings.Split(cosDir, "/")
+>         localDir = localDir + tmp[len(tmp)-1] + "/"
+>         cosDir += "/"
+>     }
+>     objects, _ := GetObjectsListRecursive(c, cosDir, 0, include, exclude)
+> 
+>     if len(objects) == 0 {
+>         logger.Warningf("cosDir: cos://%s is empty\n", cosDir)
+>         return
+>     }
+>     for _, o := range objects {
+>         objName := o.Key[len(cosDir):]
+>         localPath := localDir + objName
+>         SyncSingleDownload(c, bucketName, o.Key, localPath, op, o.LastModified)
+> 
+>     }
+> }
+> 
+> // 确定融合桶
+> func GetBucketType() {
+211d217
+< 	}
+diff -r ./util/upload.go /Users/test/work/workspace_new/coscli/coscli/util/upload.go
+4,14c4,14
+< 	"context"
+< 	"fmt"
+< 	"io/fs"
+< 	"os"
+< 	"path/filepath"
+< 	"strconv"
+< 	"strings"
+< 
+< 	logger "github.com/sirupsen/logrus"
+< 	leveldb "github.com/syndtr/goleveldb/leveldb"
+< 	"github.com/tencentyun/cos-go-sdk-v5"
+---
+>     "context"
+>     "fmt"
+>     "io/fs"
+>     "os"
+>     "path/filepath"
+>     "strconv"
+>     "strings"
+> 
+>     logger "github.com/sirupsen/logrus"
+>     leveldb "github.com/syndtr/goleveldb/leveldb"
+>     "github.com/tencentyun/cos-go-sdk-v5"
+18,24c18,24
+< 	StorageClass string
+< 	RateLimiting float32
+< 	PartSize     int64
+< 	ThreadNum    int
+< 	Meta         Meta
+< 	SnapshotDb   *leveldb.DB
+< 	SnapshotPath string
+---
+>     StorageClass string
+>     RateLimiting float32
+>     PartSize     int64
+>     ThreadNum    int
+>     Meta         Meta
+>     SnapshotDb   *leveldb.DB
+>     SnapshotPath string
+28,55c28,55
+< 	// eg:~/example/123.txt => cos://bucket/path/123.txt
+< 	// 0. ~/example/123.txt => cos://bucket
+< 	if cosPath == "" {
+< 		pathList := strings.Split(localPath, "/")
+< 		fileName := pathList[len(pathList)-1]
+< 		cosPath = fileName
+< 	}
+< 	// 1. ~/example/123.txt => cos://bucket/path/
+< 	s, err := os.Stat(localPath)
+< 	if err != nil {
+< 		logger.Fatalln(err)
+< 		os.Exit(1)
+< 	}
+< 	if s.IsDir() {
+< 		fileNames := strings.Split(localPath, "/")
+< 		fileName := fileNames[len(fileNames)-1]
+< 		cosPath = cosPath + fileName
+< 	}
+< 	// 2. 123.txt => cos://bucket/path/
+< 	if !filepath.IsAbs(localPath) {
+< 		dirPath, err := os.Getwd()
+< 		if err != nil {
+< 			logger.Fatalln(err)
+< 			os.Exit(1)
+< 		}
+< 		localPath = dirPath + "/" + localPath
+< 	}
+< 	return localPath, cosPath
+---
+>     // eg:~/example/123.txt => cos://bucket/path/123.txt
+>     // 0. ~/example/123.txt => cos://bucket
+>     if cosPath == "" {
+>         pathList := strings.Split(localPath, "/")
+>         fileName := pathList[len(pathList)-1]
+>         cosPath = fileName
+>     }
+>     // 1. ~/example/123.txt => cos://bucket/path/
+>     s, err := os.Stat(localPath)
+>     if err != nil {
+>         logger.Fatalln(err)
+>         os.Exit(1)
+>     }
+>     if s.IsDir() {
+>         fileNames := strings.Split(localPath, "/")
+>         fileName := fileNames[len(fileNames)-1]
+>         cosPath = cosPath + fileName
+>     }
+>     // 2. 123.txt => cos://bucket/path/
+>     if !filepath.IsAbs(localPath) {
+>         dirPath, err := os.Getwd()
+>         if err != nil {
+>             logger.Fatalln(err)
+>             os.Exit(1)
+>         }
+>         localPath = dirPath + "/" + localPath
+>     }
+>     return localPath, cosPath
+58,121c58,121
+< 	opt := &cos.MultiUploadOptions{
+< 		OptIni: &cos.InitiateMultipartUploadOptions{
+< 			ACLHeaderOptions: &cos.ACLHeaderOptions{
+< 				XCosACL:              "",
+< 				XCosGrantRead:        "",
+< 				XCosGrantWrite:       "",
+< 				XCosGrantFullControl: "",
+< 				XCosGrantReadACP:     "",
+< 				XCosGrantWriteACP:    "",
+< 			},
+< 			ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
+< 				CacheControl:             op.Meta.CacheControl,
+< 				ContentDisposition:       op.Meta.ContentDisposition,
+< 				ContentEncoding:          op.Meta.ContentEncoding,
+< 				ContentType:              op.Meta.ContentType,
+< 				ContentMD5:               op.Meta.ContentMD5,
+< 				ContentLength:            op.Meta.ContentLength,
+< 				ContentLanguage:          op.Meta.ContentLanguage,
+< 				Expect:                   "",
+< 				Expires:                  op.Meta.Expires,
+< 				XCosContentSHA1:          "",
+< 				XCosMetaXXX:              op.Meta.XCosMetaXXX,
+< 				XCosStorageClass:         op.StorageClass,
+< 				XCosServerSideEncryption: "",
+< 				XCosSSECustomerAglo:      "",
+< 				XCosSSECustomerKey:       "",
+< 				XCosSSECustomerKeyMD5:    "",
+< 				XOptionHeader:            nil,
+< 				XCosTrafficLimit:         (int)(op.RateLimiting * 1024 * 1024 * 8),
+< 				Listener:                 &CosListener{},
+< 			},
+< 		},
+< 		PartSize:       op.PartSize,
+< 		ThreadPoolSize: op.ThreadNum,
+< 		CheckPoint:     true,
+< 	}
+< 	localPath, cosPath = UploadPathFixed(localPath, cosPath)
+< 	fileInfo, err := os.Stat(localPath)
+< 	if err != nil {
+< 		return
+< 	}
+< 
+< 	if fileInfo.Mode().IsRegular() {
+< 	} else if fileInfo.IsDir() {
+< 	} else if fileInfo.Mode()&os.ModeSymlink == fs.ModeSymlink { // 软链接
+< 		logger.Infoln(fmt.Sprintf("List %s file is Symlink, will be excluded, "+
+< 			"please list or upload it from realpath",
+< 			localPath))
+< 		return
+< 	} else {
+< 		logger.Infoln(fmt.Sprintf("file %s is not regular file, will be excluded", localPath))
+< 		return
+< 	}
+< 
+< 	logger.Infof("Upload %s => cos://%s/%s\n", localPath, bucketName, cosPath)
+< 	_, _, err = c.Object.Upload(context.Background(), cosPath, localPath, opt)
+< 	if err != nil {
+< 		logger.Fatalln(err)
+< 		os.Exit(1)
+< 	}
+< 
+< 	if op.SnapshotPath != "" {
+< 		op.SnapshotDb.Put([]byte(localPath), []byte(strconv.FormatInt(fileInfo.ModTime().Unix(), 10)), nil)
+< 	}
+---
+>     opt := &cos.MultiUploadOptions{
+>         OptIni: &cos.InitiateMultipartUploadOptions{
+>             ACLHeaderOptions: &cos.ACLHeaderOptions{
+>                 XCosACL:              "",
+>                 XCosGrantRead:        "",
+>                 XCosGrantWrite:       "",
+>                 XCosGrantFullControl: "",
+>                 XCosGrantReadACP:     "",
+>                 XCosGrantWriteACP:    "",
+>             },
+>             ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
+>                 CacheControl:             op.Meta.CacheControl,
+>                 ContentDisposition:       op.Meta.ContentDisposition,
+>                 ContentEncoding:          op.Meta.ContentEncoding,
+>                 ContentType:              op.Meta.ContentType,
+>                 ContentMD5:               op.Meta.ContentMD5,
+>                 ContentLength:            op.Meta.ContentLength,
+>                 ContentLanguage:          op.Meta.ContentLanguage,
+>                 Expect:                   "",
+>                 Expires:                  op.Meta.Expires,
+>                 XCosContentSHA1:          "",
+>                 XCosMetaXXX:              op.Meta.XCosMetaXXX,
+>                 XCosStorageClass:         op.StorageClass,
+>                 XCosServerSideEncryption: "",
+>                 XCosSSECustomerAglo:      "",
+>                 XCosSSECustomerKey:       "",
+>                 XCosSSECustomerKeyMD5:    "",
+>                 XOptionHeader:            nil,
+>                 XCosTrafficLimit:         (int)(op.RateLimiting * 1024 * 1024 * 8),
+>                 Listener:                 &CosListener{},
+>             },
+>         },
+>         PartSize:       op.PartSize,
+>         ThreadPoolSize: op.ThreadNum,
+>         CheckPoint:     true,
+>     }
+>     localPath, cosPath = UploadPathFixed(localPath, cosPath)
+>     fileInfo, err := os.Stat(localPath)
+>     if err != nil {
+>         return
+>     }
+> 
+>     if fileInfo.Mode().IsRegular() {
+>     } else if fileInfo.IsDir() {
+>     } else if fileInfo.Mode()&os.ModeSymlink == fs.ModeSymlink { // 软链接
+>         logger.Infoln(fmt.Sprintf("List %s file is Symlink, will be excluded, "+
+>             "please list or upload it from realpath",
+>             localPath))
+>         return
+>     } else {
+>         logger.Infoln(fmt.Sprintf("file %s is not regular file, will be excluded", localPath))
+>         return
+>     }
+> 
+>     logger.Infof("Upload %s => cos://%s/%s\n", localPath, bucketName, cosPath)
+>     _, _, err = c.Object.Upload(context.Background(), cosPath, localPath, opt)
+>     if err != nil {
+>         logger.Fatalln(err)
+>         os.Exit(1)
+>     }
+> 
+>     if op.SnapshotPath != "" {
+>         op.SnapshotDb.Put([]byte(localPath), []byte(strconv.FormatInt(fileInfo.ModTime().Unix(), 10)), nil)
+>     }
+126,140c126,140
+< 	if cosDir != "" && cosDir[len(cosDir)-1] != '/' {
+< 		cosDir += "/"
+< 	}
+< 	if localDir != "" && (localDir[len(localDir)-1] != '/' && localDir[len(localDir)-1] != '\\') {
+< 		tmp := strings.Split(localDir, "/")
+< 		cosDir = filepath.Join(cosDir, tmp[len(tmp)-1])
+< 	}
+< 
+< 	files := GetLocalFilesListRecursive(localDir, include, exclude)
+< 
+< 	for _, f := range files {
+< 		localPath := filepath.Join(localDir, "/", f)
+< 		cosPath := filepath.Join(cosDir, "/", f)
+< 		SingleUpload(c, localPath, bucketName, cosPath, op)
+< 	}
+---
+>     if cosDir != "" && cosDir[len(cosDir)-1] != '/' {
+>         cosDir += "/"
+>     }
+>     if localDir != "" && (localDir[len(localDir)-1] != '/' && localDir[len(localDir)-1] != '\\') {
+>         tmp := strings.Split(localDir, "/")
+>         cosDir = filepath.Join(cosDir, tmp[len(tmp)-1])
+>     }
+> 
+>     files := GetLocalFilesListRecursive(localDir, include, exclude)
+> 
+>     for _, f := range files {
+>         localPath := filepath.Join(localDir, "/", f)
+>         cosPath := filepath.Join(cosDir, "/", f)
+>         SingleUpload(c, localPath, bucketName, cosPath, op)
+>     }
